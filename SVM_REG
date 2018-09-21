@@ -1,0 +1,223 @@
+'''
+--------------------------------------------------------------------------------------------------
+        SVM REGRESSOR
+--------------------------------------------------------------------------------------------------
+'''
+
+# Import Lib's
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Importando dataset
+dataset = pd.read_csv('train.csv', sep=',')
+#https://www.kaggle.com/c/house-prices-advanced-regression-techniques/data
+
+'''
+--------------------------------------------------------------------------------------------------
+        EXPLORING YOUR DATASET
+--------------------------------------------------------------------------------------------------
+'''
+
+dataset.head()
+dataset.info()
+dataset.describe()
+
+# Features most importants
+corr_matrix	=	dataset.corr()
+corr_matrix["SalePrice"].sort_values(ascending=False)
+# Correlation 
+from pandas.tools.plotting import scatter_matrix
+attributes = ["SalePrice","OverallQual","GrLivArea","GarageCars"]
+scatter_matrix(dataset[attributes],	figsize=(12,	8))
+
+# PLOT 2D
+dataset.plot(kind="scatter", x="OverallQual", y="SalePrice", alpha=0.5)
+# PLOT 4D - Size (s) it's not necessary
+dataset.plot(kind="scatter", x="OverallQual", y="GrLivArea", alpha=0.5, s=dataset["GarageCars"]*100, c=dataset["SalePrice"], label="SalePrice" ,cmap=plt.get_cmap("jet"), colorbar=True,)
+plt.legend()
+
+''' 
+--------------------------------------------------------------------------------------------------
+        DATA PREP 
+--------------------------------------------------------------------------------------------------
+'''
+# SELECTING X and y
+X = dataset[["OverallQual","GrLivArea"]]
+y = dataset.iloc[:,-1]
+# X = dataset.iloc[:,[1,3]].values
+
+# HANDLING MISSING DATA
+'''
+# fillnan with mean/median/most_frequent
+from sklearn.preprocessing import Imputer
+imputer = Imputer(missing_values='NaN', strategy='mean', axis=0)
+imputer = imputer.fit(X.iloc[:, 1:3])
+X.iloc[:,1:3] = imputer.transform(X.iloc[:, 1:3])
+# Drop Nan
+X.dropna(inplace = True)
+y.dropa(inplace = True)
+'''
+
+# ENCODING CATEGORICAL FEATURES
+'''
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+# Aqui nós atribuimos os valores 0,1,2,ect para os valores categoricos
+labelencoder_X = LabelEncoder()
+X.iloc[:, 3] = labelencoder_X.fit_transform(X.iloc[:, 3])
+# Aqui criamos as dummies
+onehotencoder = OneHotEncoder(categorical_features=[3])
+X = onehotencoder.fit_transform(X).toarray()
+# Mesma coisa para o y
+labelencoder_y = LabelEncoder()
+y = labelencoder_y.fit_transform(y)
+'''
+
+# FEATURE SCALING
+    # Standardisation
+from sklearn.preprocessing import StandardScaler
+sc_X = StandardScaler()
+X = sc_X.fit_transform(X)
+#X = ((X-X.mean())/X.std())
+# Mean normalization
+    # x'=x-xmean/xmax-min
+X = ((X-X.mean())/(X.max()-X.min()))
+# Min-Max scaling
+    # x'=x-xmin/xmax-min
+X = ((X-X.min())/(X.max()-X.min()))
+
+
+    # y feature scaling
+y = y.reshape((len(y),1))
+sc_y = StandardScaler()
+y = sc_y.fit_transform(y)
+
+''' 
+--------------------------------------------------------------------------------------------------
+        SPLIT THE DATA SET INTO TRAINING AND TEST SET
+--------------------------------------------------------------------------------------------------
+'''
+# HOLD OUT
+    # (Random)
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+    # (Ordered)
+'''
+Pos=8
+X_train, y_train  = X[:Pos,:] , y[:Pos]
+X_test, y_test = X[Pos:,:], y[Pos:]
+#OBS.: iloc para df e sr[:,:] para series
+'''
+
+''' 
+--------------------------------------------------------------------------------------------------
+        TRAINING THE MODEL
+--------------------------------------------------------------------------------------------------
+'''
+# if is a array like (n,) you have to reshape it with .reshape(n,1)
+# sometimes you have to put df.values.reshape
+X_train = X_train.reshape(np.size(X_train,0),np.size(X_train,1))
+X_test = X_test.reshape(np.size(X_test,0),np.size(X_test,1))
+y_train = y_train.reshape(len(y_train), 1)
+y_test = y_test.reshape(len(y_test),1)
+
+# Fit your method to your training set
+from sklearn.svm import SVR
+regressor = SVR(kernel='rbf')
+regressor.fit(X_train, y_train)
+# Coef 
+print("Coef: ",regressor.coef_)
+print("Intercept: ",regressor.intercept_)
+
+'''
+--------------------------------------------------------------------------------------------------
+        PREDICT 
+--------------------------------------------------------------------------------------------------
+'''
+# y_pred
+y_pred = regressor.predict(X_test)
+
+# Predict a specific X value
+X_new = np.array([9,1500]).reshape((1,2))
+y_new = sc_y.inverse_transform(regressor.predict( sc_X.transform(X_new) ))
+print(y_new)
+
+'''
+--------------------------------------------------------------------------------------------------
+        METRICS
+--------------------------------------------------------------------------------------------------
+'''
+from sklearn.metrics import mean_absolute_error, mean_squared_error , r2_score
+print("MAE: ", mean_absolute_error(y_test, y_pred))
+print("MSE: ",mean_squared_error(y_test, y_pred))
+print("RMSE: ",mean_squared_error(y_test, y_pred)**(1/2))
+print("R2: ",r2_score(y_test, y_pred))
+
+y_pred = sc_y.inverse_transform(y_pred)
+y_test = sc_y.inverse_transform(y_test)
+'''
+--------------------------------------------------------------------------------------------------
+        CROSS VALIDATION
+--------------------------------------------------------------------------------------------------
+'''
+''' Metrics:
+    ‘neg_mean_absolute_error’ (MAE)
+    ‘neg_mean_squared_error’  (MSE)
+    'r2'	
+'''
+# K-FOLD or LOOCV
+'''
+# K-Folds:
+k=10
+# LOOCV
+k = len(X_train)
+
+from sklearn.model_selection import cross_val_score
+accuracies_MAE = cross_val_score(estimator=regressor, X=X_train, y=y_train, cv=k, scoring ='neg_mean_absolute_error')
+print("MAE: ",accuracies_MAE.mean())
+print("MAE_Std: ",accuracies_MAE.std())
+accuracies_MSE = cross_val_score(estimator=regressor, X=X_train, y=y_train, cv=k, scoring ='neg_mean_squared_error')
+print("MSE: ",accuracies_MSE.mean())
+print("MSE_std: ", accuracies_MSE.std())
+accuracies_r2 = cross_val_score(estimator=regressor, X=X_train, y=y_train, cv=k, scoring ='r2')
+print("R2: ",accuracies_r2.mean())
+print("R2_std: ",accuracies_r2.std())
+'''
+
+''' 
+--------------------------------------------------------------------------------------------------
+        VISUALISING THE RESULTS
+--------------------------------------------------------------------------------------------------
+'''
+# 
+X_plot_train = sc_X.inverse_transform(X_train)
+X_plot_test = sc_X.inverse_transform(X_test)
+
+# PLOT 2D
+    # TRANING
+plt.scatter(X_plot_train[:,1], y_train, color='purple', alpha=0.5)
+plt.title('Train set')
+plt.scatter(X_plot_train[:,1], regressor.predict(X_train), color='blue')
+plt.show()
+
+    # TEST
+plt.scatter(X_plot_test[:,0], y_test, color='orange' , alpha=0.5)
+plt.scatter(X_plot_test[:,0], regressor.predict(X_test), color='blue',alpha=0.3)
+plt.title('Test set')
+plt.show()
+
+#  PLOT 3D
+    # y_pred
+d_test = {'x1': X_plot_test[:,0], 'x2':X_plot_test[:,1] }
+df_test = pd.DataFrame(d_test)
+df_test.plot(kind="scatter", x="x1", y="x2", alpha=0.5, c=y_pred, label="SalePrice" ,cmap=plt.get_cmap("jet"), colorbar=True, title="y_pred")
+plt.legend()
+
+    # y_test
+y_test= y_test.reshape((292,1))
+df_test.plot(kind="scatter", x="x1", y="x2", alpha=0.5, c=y_test.reshape((292,)), label="SalePrice" ,cmap=plt.get_cmap("jet"), colorbar=True, title="y_test")
+plt.legend()
+
+# Tip: Another goodway is using a arange to all axis x, so this make a line for 2D
+
+
