@@ -43,8 +43,8 @@ plt.legend()
 --------------------------------------------------------------------------------------------------
 '''
 # SELECTING X and y
-X = dataset[["OverallQual","GrLivArea"]]
-y = dataset.iloc[:,-1]
+X = dataset[["OverallQual","GrLivArea"]].values
+y = dataset.iloc[:,-1].values
 # X = dataset.iloc[:,[1,3]].values
 
 # HANDLING MISSING DATA
@@ -62,35 +62,40 @@ y.dropa(inplace = True)
 # ENCODING CATEGORICAL FEATURES
 '''
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-# Aqui nós atribuimos os valores 0,1,2,ect para os valores categoricos
+# The values 0,1,2,etc into categorical values
 labelencoder_X = LabelEncoder()
 X.iloc[:, 3] = labelencoder_X.fit_transform(X.iloc[:, 3])
-# Aqui criamos as dummies
+# Here we create the dummies
 onehotencoder = OneHotEncoder(categorical_features=[3])
 X = onehotencoder.fit_transform(X).toarray()
-# Mesma coisa para o y
+# The same to y
 labelencoder_y = LabelEncoder()
 y = labelencoder_y.fit_transform(y)
 '''
 
 # FEATURE SCALING
+# Saving the original values 
+Xo = X
+yo = y
     # Standardisation
+    #X = ((X-X.mean())/X.std())
 from sklearn.preprocessing import StandardScaler
 sc_X = StandardScaler()
 X = sc_X.fit_transform(X)
-#X = ((X-X.mean())/X.std())
-# Mean normalization
-    # x'=x-xmean/xmax-min
-X = ((X-X.mean())/(X.max()-X.min()))
-# Min-Max scaling
-    # x'=x-xmin/xmax-min
-X = ((X-X.min())/(X.max()-X.min()))
-
-
-    # y feature scaling
-y = y.reshape((len(y),1))
+    # y Standardisation
 sc_y = StandardScaler()
-y = sc_y.fit_transform(y)
+y = sc_y.fit_transform(y.reshape((len(y),1)))
+
+'''
+    # Mean normalization
+X = ((X-X.mean())/(X.max()-X.min()))
+        # Inverse Transform 
+X = (Xo.max()-Xo.min())*X+Xo.mean()
+    # Min-Max scaling
+X = ((X-X.min())/(X.max()-X.min()))
+        # Inverse Tranform
+X = (Xo.max()-Xo.min())*X+Xo.min()
+'''
 
 ''' 
 --------------------------------------------------------------------------------------------------
@@ -98,7 +103,6 @@ y = sc_y.fit_transform(y)
 --------------------------------------------------------------------------------------------------
 '''
 # HOLD OUT
-    # (Random)
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
     # (Ordered)
@@ -125,9 +129,7 @@ y_test = y_test.reshape(len(y_test),1)
 from sklearn.svm import SVR
 regressor = SVR(kernel='rbf')
 regressor.fit(X_train, y_train)
-# Coef 
-print("Coef: ",regressor.coef_)
-print("Intercept: ",regressor.intercept_)
+
 
 '''
 --------------------------------------------------------------------------------------------------
@@ -189,7 +191,7 @@ print("R2_std: ",accuracies_r2.std())
         VISUALISING THE RESULTS
 --------------------------------------------------------------------------------------------------
 '''
-# 
+# X scaled into X originalm or you can use Xo
 X_plot_train = sc_X.inverse_transform(X_train)
 X_plot_test = sc_X.inverse_transform(X_test)
 
@@ -202,7 +204,7 @@ plt.show()
 
     # TEST
 plt.scatter(X_plot_test[:,0], y_test, color='orange' , alpha=0.5)
-plt.scatter(X_plot_test[:,0], regressor.predict(X_test), color='blue',alpha=0.3)
+plt.scatter(X_plot_test[:,0], y_pred, color='blue',alpha=0.3)
 plt.title('Test set')
 plt.show()
 
@@ -217,7 +219,5 @@ plt.legend()
 y_test= y_test.reshape((292,1))
 df_test.plot(kind="scatter", x="x1", y="x2", alpha=0.5, c=y_test.reshape((292,)), label="SalePrice" ,cmap=plt.get_cmap("jet"), colorbar=True, title="y_test")
 plt.legend()
-
-# Tip: Another goodway is using a arange to all axis x, so this make a line for 2D
 
 
