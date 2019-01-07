@@ -1,12 +1,18 @@
 # ML_Template
 Most common machine learning algorithms with
   - Exploratory analysis
-  - Enconding categorical variables
-  - Feature scaling
+  - Dataprep
+  - Training
+  - Predicting
+  - Evaluating
   - Cross validation (HoldOut/LOOCV/K-FOLDS)
   - Grid Search
 
-Datasets
+Datasets:
 ### Classification - Titanic
-### Regression - House Sale
-### Clusterig
+#https://www.kaggle.com/c/titanic/data
+
+### Regression - House Prices
+https://www.kaggle.com/c/house-prices-advanced-regression-techniques
+
+### Clustering
