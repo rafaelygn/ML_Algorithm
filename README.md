@@ -10,7 +10,7 @@ Most common machine learning algorithms with
 
 Datasets:
 ### Classification - Titanic
-#https://www.kaggle.com/c/titanic/data
+https://www.kaggle.com/c/titanic/data
 
 ### Regression - House Prices
 https://www.kaggle.com/c/house-prices-advanced-regression-techniques
